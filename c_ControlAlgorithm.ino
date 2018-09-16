@@ -44,9 +44,9 @@ const int kRotationsBound = (kThrottleBound/2)-1; // 100
   void PIDCompute();
   void txSignalToAngle();
   //pid
-  PID myPIDP(&pitchd, output, &setpointp, consKpP, consKiP, consKdP, DIRECT);
-  PID myPIDR(&rolld, output, &setpointr, consKpR, consKiR, consKdR, DIRECT);
-  PID myPIDY(&yawd, output, &setpointy, consKpY, consKiY, consKdY, DIRECT);
+  PID myPIDP(&pitchd, NP, &setpointp, consKpP, consKiP, consKdP, DIRECT);
+  PID myPIDR(&rolld, NR, &setpointr, consKpR, consKiR, consKdR, DIRECT);
+  PID myPIDY(&yawd, NY, &setpointy, consKpY, consKiY, consKdY, DIRECT);
 /* Inputs are txSignal, which enter this function in state 2 
  *  INPUT:  txSignal  = [R2 P2 Y2 T2], 2 denotes state 2 of values
  *  OUTPUT: motorsOut = [M1 M2 M3 M4]
@@ -162,6 +162,9 @@ void InitializePID(){
  */
 void PIDCompute (){
   //1. update setpoint
+  setpointp = P;
+  setpointr = R;
+  setpointy = Y;
 
   // P R Y ---- PID Function --- > NP NR NY
   myPIDP.Compute();
@@ -172,7 +175,7 @@ void PIDCompute (){
   NR = constrain(NR , -NT/2,NT/2)/2;
   NY = constrain(NY, -NT/2,NT/2)/2;
 
-//2. choose aggressive/conservative pid
+// choose aggressive/conservative pid
 //  double gap = abs(Setpoint-Input); //distance away from setpoint
 //  if (gap < 10)
 //  {  //we're close to setpoint, use conservative tuning parameters
@@ -192,15 +195,11 @@ void PIDCompute (){
  * @param setpoint  mapped angle value
  */
 void txSignalToAngle(){
-  //TODO: update txSignal range in following map functions.
-  R = txSignal[ROLL];
-  P = txSignal[PITCH];
-  Y = txSignal[YAW];
   //Pitch
-  setpointp=map(P, 40, 200, pitchMin, pitchMax);
+  P=map(P, 40, 200, pitchMin, pitchMax);
   //Roll
-  setpointr=map(R, 0, 200, rollMin, rollMax);
+  R=map(R, 0, 200, rollMin, rollMax);
   //Yaw
-  setpointy=map(Y, 0, 200, yawMin, yawMax);
+  Y=map(Y, 0, 200, yawMin, yawMax);
 }
 

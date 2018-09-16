@@ -79,7 +79,6 @@ float zeta = sqrt(3.0f / 4.0f) * GyroMeasDrift;   // compute zeta, the other fre
 uint32_t delt_t = 0; // used to control display output rate
 uint32_t count = 0, sumCount = 0; // used to control display output rate
 float pitch, yaw, roll;
-double pitchd,yawd,rolld;
 double* pitchdp,yawdp,rolldp;
 float deltat = 0.0f, sum = 0.0f;        // integration interval for both filter schemes
 uint32_t lastUpdate = 0, firstUpdate = 0; // used to calculate integration interval
@@ -93,7 +92,6 @@ float magBias[3],magScale[3];
 
 void IMU_Setup()
 {
-  qq=8;
   Wire.begin();
 //  TWBR = 12;  // 400 kbit/sec I2C speed
   Serial.begin(115200);

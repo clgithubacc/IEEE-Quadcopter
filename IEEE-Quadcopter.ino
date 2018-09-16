@@ -85,7 +85,6 @@
 #include "PinDefinitions.h"
 #include "quaternionFilters.h"
 #include "MPU9250.h"
-#include "constants.h"
 #include <PID_v1.h>
 MPU9250 myIMU;
 
