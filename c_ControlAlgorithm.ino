@@ -40,10 +40,13 @@ const int kRotationsBound = (kThrottleBound/2)-1; // 100
   double consKpP=1, consKiP=0.05, consKdP=0.25;
   double consKpR=1, consKiR=0.05, consKdR=0.25;
   double consKpY=1, consKiY=0.05, consKdY=0.25;
+
+  void PIDCompute();
+  void txSignalToAngle();
   //pid
-  PID myPIDP(&pitchd, output, &setpoint, consKpP, consKiP, consKdP, DIRECT);
-  PID myPIDR(&rolld, output, &setpoint, consKpR, consKiR, consKdR, DIRECT);
-  PID myPIDY(&yawd, output, &setpoint, consKpY, consKiY, consKdY, DIRECT);
+  PID myPIDP(&pitchd, output, &setpointp, consKpP, consKiP, consKdP, DIRECT);
+  PID myPIDR(&rolld, output, &setpointr, consKpR, consKiR, consKdR, DIRECT);
+  PID myPIDY(&yawd, output, &setpointy, consKpY, consKiY, consKdY, DIRECT);
 /* Inputs are txSignal, which enter this function in state 2 
  *  INPUT:  txSignal  = [R2 P2 Y2 T2], 2 denotes state 2 of values
  *  OUTPUT: motorsOut = [M1 M2 M3 M4]
@@ -52,11 +55,13 @@ void controlTransfer(const unsigned int *txSignal, unsigned int *motorsOut) {
   // abandon array in favor of more readable operations on the signals
   // the output will be contained in motorsOut anyways
   // probably a bad idea to read/write the same place VERY FAST
+
   T = txSignal[THROTTLE];
   R = txSignal[ROLL];
   P = txSignal[PITCH];
   Y = txSignal[YAW];
 
+  txSignalToAngle();
 //  M1 = kServoMin;
 //  M2 = kServoMin;
 //  M3 = kServoMin;
@@ -69,12 +74,12 @@ void controlTransfer(const unsigned int *txSignal, unsigned int *motorsOut) {
   }else{
     NT=0;
   }
-  NP = -constrain(P - 100,-NT/2,NT/2)/2;
-  NR = constrain(R - 100,-NT/2,NT/2)/2;
-  NY = constrain(Y - 100,-NT/2,NT/2)/2;
 
-  MP= 2*NP / (20.0/3);
-  MR= 2*NR / (20.0/3);
+//Sep 16: Add PID
+  PIDCompute(); // Compute NP NR NY using PID
+// PID output [-100, 100]
+
+  
   //Serial.print("Pitch in degrees is : "); Serial.print(MP); 
   //Serial.print("   Raw in degrees is   :"); Serial.print(MR); Serial.println();
     //DEBUG print N[T-P]
@@ -105,6 +110,7 @@ void controlTransfer(const unsigned int *txSignal, unsigned int *motorsOut) {
 //  M2 = NT - NR - NY + kServoMin;
 //  M3 = NT + NP + NY + kServoMin;
 //  M4 = NT + NR - NY + kServoMin;
+
   M1 = NT + NP + NR + NY + kServoMin;
   M2 = NT - NP + NR - NY + kServoMin;
   M3 = NT - NP - NR + NY + kServoMin;
@@ -134,7 +140,13 @@ void controlTransfer(const unsigned int *txSignal, unsigned int *motorsOut) {
   
 }
 void InitializePID(){
-  myPID.SetMode(AUTOMATIC);
+  myPIDP.SetMode(AUTOMATIC);
+  myPIDR.SetMode(AUTOMATIC);
+  myPIDY.SetMode(AUTOMATIC);
+  
+  myPIDP.SetOutputLimits(-100.0, 100.0);
+  myPIDR.SetOutputLimits(-100.0, 100.0);
+  myPIDY.SetOutputLimits(-100.0, 100.0);
 }
 //void PIDControl (double* input, const unsigned int* motorSpeeds, const unsigned int* txSignal,
 //        double Kp, double Ki, double Kd, int ControllerDirection){
@@ -150,9 +162,17 @@ void InitializePID(){
  */
 void PIDCompute (){
   //1. update setpoint
-  T=txSignal[THROTTLE]; //Initialize throttle for future use
-  txSignalToAngle(txSignal,setpoint);
-  //2. choose aggressive/conservative pid
+
+  // P R Y ---- PID Function --- > NP NR NY
+  myPIDP.Compute();
+  myPIDR.Compute();
+  myPIDY.Compute();
+
+  NP = -constrain(NP, -NT/2,NT/2)/2;
+  NR = constrain(NR , -NT/2,NT/2)/2;
+  NY = constrain(NY, -NT/2,NT/2)/2;
+
+//2. choose aggressive/conservative pid
 //  double gap = abs(Setpoint-Input); //distance away from setpoint
 //  if (gap < 10)
 //  {  //we're close to setpoint, use conservative tuning parameters
@@ -171,14 +191,16 @@ void PIDCompute (){
  * @param txSignal  transmitter input
  * @param setpoint  mapped angle value
  */
-void txSignalToAngle(const unsigned int* txSignal, double* setpoint){
+void txSignalToAngle(){
   //TODO: update txSignal range in following map functions.
-  R = txSignal[ROLL];P = txSignal[PITCH];Y = txSignal[YAW];
+  R = txSignal[ROLL];
+  P = txSignal[PITCH];
+  Y = txSignal[YAW];
   //Pitch
-  setpoint[0]=map(P, 40, 200, pitchMin, pitchMax);
+  setpointp=map(P, 40, 200, pitchMin, pitchMax);
   //Roll
-  setpoint[1]=map(R, 0, 200, rollMin, rollMax);
+  setpointr=map(R, 0, 200, rollMin, rollMax);
   //Yaw
-  setpoint[2]=map(Y, 0, 200, yawMin, yawMax);
+  setpointy=map(Y, 0, 200, yawMin, yawMax);
 }
 
