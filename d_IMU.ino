@@ -291,18 +291,22 @@ void IMU_Loop()
     roll  = atan2(2.0f * (q[0] * q[1] + q[2] * q[3]), q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3]);
     pitch *= 180.0f / PI;
     yaw   *= 180.0f / PI; 
-    yaw   -= 7.03; 
+    //yaw   -= 7.03; 
     roll  *= 180.0f / PI;
-
+    double roll_sign = roll;
+    roll = (180 - abs(roll));
+    if (roll_sign<0){
+      roll*=-1;
+    }
     pitchd=pitch;
     rolld=roll;
     yawd=yaw+180;
-    Serial.print("Yaw, Pitch, Roll: ");
-    Serial.print(yaw+180, 2);
-    Serial.print(", ");
-    Serial.print(pitch, 2);
-    Serial.print(", ");
-    Serial.println(roll, 2);
+//    Serial.print("Yaw, Pitch, Roll: ");
+//    Serial.print(yaw+180, 2);
+//    Serial.print(", ");
+//    Serial.print(pitch, 2);
+//    Serial.print(", ");
+//    Serial.println(roll, 2);
     // With these settings the filter is updating at a ~145 Hz rate using the Madgwick scheme and 
     // >200 Hz using the Mahony scheme even though the display refreshes at only 2 Hz.
     // The filter update rate is determined mostly by the mathematical steps in the respective algorithms, 

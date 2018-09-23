@@ -92,7 +92,7 @@ MPU9250 myIMU;
   //--Used as main control signal from tx input to motor speed settings. 
   unsigned int *quadSignal; //although this is global scope; we'll pass as argument
   unsigned int *motorSpeeds; // used as input to motor control
-  const bool ENABLE_MOTORS = true;
+  const bool ENABLE_MOTORS = false;
   bool TxSignalError = false; //true if error exists in Tx
   bool skipControlTransfer = false;
   bool waitForCalibration = false; // will have a waiting procedure at the start if true
@@ -101,10 +101,6 @@ MPU9250 myIMU;
   const int PITCH    = 1;
   const int ROLL     = 0;
   const int YAW      = 3;
-
-  
-  //initialize PID: NOTE: all parameters must be double(*)
-  //PID myPID(quadSignal,motorSpeeds,setpoint,consKp,consKi,consKd,DIRECT);
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
@@ -122,7 +118,7 @@ void setup() {
     initMotorControl();
     setMotorsToMin();
   }
-  //myPID.SetMode(AUTOMATIC);
+  InitializePID();
   Serial.println("Setup complete");
 }
 
@@ -144,10 +140,9 @@ void loop() {
   if(skipControlTransfer) {
     skipControlTransfer = false;
   } else {
-    //controlTransfer(quadSignal, motorSpeeds); 
+    controlTransfer(quadSignal, motorSpeeds); 
   }
-  //printMotorValues(motorSpeeds);
-  
+    printMotorValues(motorSpeeds);
   //--Send signal to motors, if no errors exist && they're enabled
   //--TODO; check that this logical check is working correctly
   if(!TxSignalError && ENABLE_MOTORS) {

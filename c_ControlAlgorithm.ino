@@ -25,7 +25,7 @@ const int kRotationsBound = (kThrottleBound/2)-1; // 100
 //--Variables used in controlTransfer
   int T, R, P, Y;   // local copies of the 4 tx signals
   int M1, M2, M3, M4; // temp variables for motor speeds
-  int NT, NP, NR, NY; // transformation factors
+  double NT, NP, NR, NY; // transformation factors
   double MP, MR;  //Input of pitch and row in degrees
   double setpointp,setpointr,setpointy;
   double output;
@@ -44,9 +44,9 @@ const int kRotationsBound = (kThrottleBound/2)-1; // 100
   void PIDCompute();
   void txSignalToAngle();
   //pid
-  PID myPIDP(&pitchd, NP, &setpointp, consKpP, consKiP, consKdP, DIRECT);
-  PID myPIDR(&rolld, NR, &setpointr, consKpR, consKiR, consKdR, DIRECT);
-  PID myPIDY(&yawd, NY, &setpointy, consKpY, consKiY, consKdY, DIRECT);
+  PID myPIDP(&pitchd, &NP, &setpointp, consKpP, consKiP, consKdP, DIRECT);
+  PID myPIDR(&rolld, &NR, &setpointr, consKpR, consKiR, consKdR, DIRECT);
+  PID myPIDY(&yawd, &NY, &setpointy, consKpY, consKiY, consKdY, DIRECT);
 /* Inputs are txSignal, which enter this function in state 2 
  *  INPUT:  txSignal  = [R2 P2 Y2 T2], 2 denotes state 2 of values
  *  OUTPUT: motorsOut = [M1 M2 M3 M4]
@@ -70,13 +70,17 @@ void controlTransfer(const unsigned int *txSignal, unsigned int *motorsOut) {
   // Transform to state 4 (skip 3); map values from 0 to state 3 resolution
   // to get lower bound of txSignal to be 0 to $STATE3_MAX_VALUE
   if (T>40 && T<=200){
-    NT = map(T, 40, 200, 250, 500);
+    NT = map(T, 40, 200, 300, 530);
+    PIDCompute();
   }else{
     NT=0;
+    NP=0;
+    NR=0;
+    NY=0;
   }
 
 //Sep 16: Add PID
-  PIDCompute(); // Compute NP NR NY using PID
+   // Compute NP NR NY using PID
 // PID output [-100, 100]
 
   
@@ -111,10 +115,10 @@ void controlTransfer(const unsigned int *txSignal, unsigned int *motorsOut) {
 //  M3 = NT + NP + NY + kServoMin;
 //  M4 = NT + NR - NY + kServoMin;
 
-  M1 = NT + NP + NR + NY + kServoMin;
-  M2 = NT - NP + NR - NY + kServoMin;
-  M3 = NT - NP - NR + NY + kServoMin;
-  M4 = NT + NP - NR - NY + kServoMin;
+  M1 = (int)(NT + NP + NR + NY + kServoMin);
+  M2 = (int)(NT - NP + NR - NY + kServoMin);
+  M3 = (int)(NT - NP - NR + NY + kServoMin);
+  M4 = (int)(NT + NP - NR - NY + kServoMin);
   /*
   M1 = NT + kServoMin;
   M2 = NT + kServoMin;
@@ -144,9 +148,9 @@ void InitializePID(){
   myPIDR.SetMode(AUTOMATIC);
   myPIDY.SetMode(AUTOMATIC);
   
-  myPIDP.SetOutputLimits(-100.0, 100.0);
-  myPIDR.SetOutputLimits(-100.0, 100.0);
-  myPIDY.SetOutputLimits(-100.0, 100.0);
+  myPIDP.SetOutputLimits(-90.0, 90.0);
+  myPIDR.SetOutputLimits(-90.0, 90.0);
+  myPIDY.SetOutputLimits(-90.0, 90.0);
 }
 //void PIDControl (double* input, const unsigned int* motorSpeeds, const unsigned int* txSignal,
 //        double Kp, double Ki, double Kd, int ControllerDirection){
@@ -160,7 +164,7 @@ void InitializePID(){
  * @param ControllerDirection controller direction (DIRECT or REVERSE). 
  *                            See lib for details.
  */
-void PIDCompute (){
+void PIDCompute(){
   //1. update setpoint
   setpointp = P;
   setpointr = R;
@@ -171,9 +175,9 @@ void PIDCompute (){
   myPIDR.Compute();
   myPIDY.Compute();
 
-  NP = -constrain(NP, -NT/2,NT/2)/2;
-  NR = constrain(NR , -NT/2,NT/2)/2;
-  NY = constrain(NY, -NT/2,NT/2)/2;
+//  NP = -constrain(NP, -NT/2,NT/2)/2;
+//  NR = constrain(NR , -NT/2,NT/2)/2;
+//  NY = constrain(NY, -NT/2,NT/2)/2;
 
 // choose aggressive/conservative pid
 //  double gap = abs(Setpoint-Input); //distance away from setpoint
